@@ -1,15 +1,19 @@
 class Sensor{
 
-    constructor(pos, range) {
+    constructor(pos, range, warningRange, dangerRange, walls) {
         this.pos = pos
         this.rays = []
-        this.range = range
+        this.range = range || 250
+        this.warningRange = warningRange || 100
+        this.dangerRange = dangerRange || 60
+        this.walls = walls
     }
 
     generateRays() {
         for(let i=0; i<=360; i+=10) {
-            this.rays.push(new Ray(this.pos, radians(i)))
+            this.rays.push(new Ray(this.pos, radians(i), this.warningRange, this.dangerRange, this.range))
         }
+        return this.rays
     }
 
     cast() {
@@ -20,7 +24,7 @@ class Sensor{
             let min = this.range || Infinity;
             let _wall = null
 
-            for(let wall of walls) {
+            for(let wall of this.walls) {
                 
                 let temp = ray.checkIntersection(wall)
                 
@@ -59,30 +63,33 @@ class Sensor{
         }
     }
 
-    checkCollision(dangerRange, warningRange) {
+    checkCollision(range, dangerRange, warningRange) {
+        this.dangerRange = dangerRange
+        this.warningRange = warningRange
+        this.range = range
         let danger = false
         let warn = false
         let dangerRays = []
         let warningRays = []
 
-        for(let wall of walls) {
+        for(let wall of this.walls) {
             
-            if(warningRange && wall.min_dist < warningRange) {
+            if(this.warningRange && wall.min_dist < this.warningRange) {
                 warn = true
 
                 for(let r of wall.rays) {
-                    if(r.min < warningRange) {
+                    if(r.min < this.warningRange) {
                         r.ray.setWarning = true
                         warningRays.push(r)
                     }
                 }
             }
 
-            if(wall.min_dist < dangerRange) {
+            if(wall.min_dist < this.dangerRange) {
                 danger = true
 
                 for(let r of wall.rays) {
-                    if(r.min < dangerRange) {
+                    if(r.min < this.dangerRange) {
                         r.ray.setDanger = true
                         dangerRays.push(r)
                     }
@@ -102,6 +109,8 @@ class Sensor{
     }
 
     update(pos) {
+        if(!pos) return
+        
         this.pos = pos
         for(let ray of this.rays) {
             ray.pos = pos            
@@ -113,15 +122,15 @@ class Sensor{
 
 class Ray {
 
-    constructor(pos, dir) {
+    constructor(pos, dir, warningRange, dangerRange, range) {
         this.pos = pos;
         this.dir = p5.Vector.fromAngle(dir);
         this.theta = dir;
         this.setDanger = false
         this.setWarning = false
-        this.warningRange = 100
-        this.dangerRange = 60
-        this.range = 200
+        this.warningRange = warningRange
+        this.dangerRange = dangerRange
+        this.range = range
     }
 
     checkIntersection(wall) {
